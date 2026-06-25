@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Wochenplaner — Version 1.7.0 — Stand: 2026-06-21 -->
+<!-- Wochenplaner — Version 1.8.0 — Stand: 2026-06-24 -->
 <!-- Changelog wird separat in CHANGELOG.html gepflegt und zur Laufzeit per fetch() geladen. -->
 <html lang="de">
 
@@ -425,6 +425,23 @@
       color: var(--ink);
       border-bottom: 1px solid var(--rule-strong);
       padding: 3px 2px;
+    }
+
+    .year-field {
+      width: 48px;
+      flex-shrink: 0;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 12px;
+      border: none;
+      background: transparent;
+      color: var(--ink-soft);
+      border-bottom: 1px solid var(--rule-strong);
+      padding: 3px 2px;
+      text-align: center;
+    }
+    .year-field:focus {
+      outline: none;
+      border-bottom-color: var(--moss);
     }
 
     .del-btn {
@@ -1159,7 +1176,7 @@
     const SYMBOLS = ['•', '○', '–', '✓', '!', '✕', '›'];
     const WEATHER_LABELS = ['kein Eintrag', 'sonnig', 'bewölkt', 'Regen', 'Schnee', 'Gewitter'];
     const MONTH_NAMES = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'];
-    const APP_VERSION = '1.7.0';
+    const APP_VERSION = '1.8.0';
     const WEEKDAY_NAMES_FULL = ['Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag'];
 
     let currentPage = 'cover', weekOffset = 0, monthOffset = 0;
@@ -1169,6 +1186,10 @@
 
     let customColors = JSON.parse(localStorage.getItem('wochenplaner-colors')) || {};
     let darkMode = localStorage.getItem('wochenplaner-darkmode') === 'true';
+    let listYearFilter = 'all';
+    let yearBarEnabled = localStorage.getItem('wochenplaner-yearbar') !== 'false';
+    function toggleYearBar(){ yearBarEnabled = !yearBarEnabled; localStorage.setItem('wochenplaner-yearbar', yearBarEnabled ? 'true' : 'false'); renderApp(); }
+    function currentYear(){ return new Date().getFullYear(); }
 
     const LIGHT_PALETTE = {
       '--paper': '#EDEEE5', '--paper-raised': '#F8F8F2', '--ink': '#28342F', '--ink-soft': '#5C6A62',
@@ -1310,11 +1331,17 @@
     function normalizeMediaLog(m) {
       if (m.books && !m.booksRead) m.booksRead = m.books;
       ['booksRead', 'booksToRead', 'movies', 'podcasts', 'quotes', 'achievements', 'dates'].forEach(k => { if (!Array.isArray(m[k])) m[k] = []; });
+      ['booksRead', 'booksToRead', 'movies', 'podcasts', 'quotes', 'achievements'].forEach(k => {
+        m[k].forEach(item => { if (!item.year) item.year = currentYear(); });
+      });
       if (!Array.isArray(m.habits) || m.habits.length === 0) {
         m.habits = [{ id: genId(), name: 'Lesen' }, { id: genId(), name: 'Instrument üben' }, { id: genId(), name: 'Projekt / Python' }, { id: genId(), name: 'Bewegung' }];
       }
       if (!Array.isArray(m.customLists)) m.customLists = [];
-      m.customLists.forEach(l => { if (!Array.isArray(l.items)) l.items = []; });
+      m.customLists.forEach(l => {
+        if (!Array.isArray(l.items)) l.items = [];
+        l.items.forEach(item => { if (!item.year) item.year = currentYear(); });
+      });
       return m;
     }
 
@@ -1883,9 +1910,10 @@
     }
     /* ---- END MOOD TRACKER ---- */
 
-    function addItem(cat) { mediaLog[cat].push({ text: '' }); pendingFocusId = 'item-' + cat + '-' + (mediaLog[cat].length - 1); scheduleSaveMedia(); renderApp(); }
+    function addItem(cat) { mediaLog[cat].push({ text: '', year: currentYear() }); pendingFocusId = 'item-' + cat + '-' + (mediaLog[cat].length - 1); scheduleSaveMedia(); renderApp(); }
     function deleteItem(cat, idx) { mediaLog[cat].splice(idx, 1); scheduleSaveMedia(); renderApp(); }
     function updateItem(cat, idx, v) { mediaLog[cat][idx].text = v; scheduleSaveMedia(); }
+    function updateItemYear(cat, idx, v) { const y = parseInt(v, 10); mediaLog[cat][idx].year = isNaN(y) ? currentYear() : y; scheduleSaveMedia(); renderApp(); }
     function migrateBookToRead(idx) { const item = mediaLog.booksToRead.splice(idx, 1)[0]; mediaLog.booksRead.push(item); scheduleSaveMedia(); renderApp(); }
 
     function addCustomList() {
@@ -1910,7 +1938,7 @@
     function addCustomListItem(id) {
       const list = mediaLog.customLists.find(l => l.id === id);
       if (!list) return;
-      list.items.push({ text: '' });
+      list.items.push({ text: '', year: currentYear() });
       pendingFocusId = 'clitem-' + id + '-' + (list.items.length - 1);
       scheduleSaveMedia(); renderApp();
     }
@@ -1925,6 +1953,13 @@
       if (!list) return;
       list.items[idx].text = v;
       scheduleSaveMedia();
+    }
+    function updateCustomListItemYear(id, idx, v) {
+      const list = mediaLog.customLists.find(l => l.id === id);
+      if (!list) return;
+      const y = parseInt(v, 10);
+      list.items[idx].year = isNaN(y) ? currentYear() : y;
+      scheduleSaveMedia(); renderApp();
     }
     function addDate() { mediaLog.dates.push({ date: '', text: '' }); pendingFocusId = 'date-day-' + (mediaLog.dates.length - 1); scheduleSaveMedia(); renderApp(); }
     function addDateForMonth(monthNum) { mediaLog.dates.push({ date: '01.' + String(monthNum).padStart(2, '0') + '.', text: '' }); pendingFocusId = 'date-text-' + (mediaLog.dates.length - 1); scheduleSaveMedia(); renderApp(); }
@@ -1997,6 +2032,40 @@
         console.error('Verbindungstest fehlgeschlagen:', e);
         flashStatus(e && e.code === 'permission-denied' ? 'Blockiert — Firestore-Regeln prüfen' : 'Verbindung fehlgeschlagen — offline?', true);
       }
+    }
+
+    function getAllYearsInData() {
+      const years = new Set();
+      const collect = arr => arr.forEach(item => { if (item.year) years.add(item.year); });
+      ['booksRead', 'movies', 'podcasts', 'quotes', 'achievements'].forEach(k => collect(mediaLog[k]));
+      mediaLog.customLists.forEach(l => collect(l.items));
+      years.add(currentYear());
+      return Array.from(years).sort((a, b) => a - b);
+    }
+    function getFilteredIndices(arr) {
+      if (listYearFilter === 'all') return arr.map((_, i) => i);
+      return arr.reduce((acc, item, i) => { if (item.year === listYearFilter) acc.push(i); return acc; }, []);
+    }
+    function changeListYear(delta) {
+      const years = getAllYearsInData();
+      let idx = listYearFilter === 'all' ? years.indexOf(currentYear()) : years.indexOf(listYearFilter);
+      if (idx === -1) idx = years.length - 1;
+      idx = Math.min(Math.max(idx + delta, 0), years.length - 1);
+      listYearFilter = years[idx];
+      renderApp();
+    }
+    function setListYear(y) { listYearFilter = y; renderApp(); }
+    function buildYearBar() {
+      if (!yearBarEnabled) return '';
+      const label = listYearFilter === 'all' ? 'Alle Jahre' : String(listYearFilter);
+      return `<div class="subheader">
+      <div class="week-meta">${label}</div>
+      <div class="nav">
+        <button onclick="changeListYear(-1)" aria-label="Voriges Jahr">←</button>
+        <button class="toggle-btn${listYearFilter === 'all' ? ' on' : ''}" onclick="setListYear('all')">Gesamt</button>
+        <button onclick="changeListYear(1)" aria-label="Nächstes Jahr">→</button>
+      </div>
+    </div>`;
     }
 
     function buildTabs() {
@@ -2212,22 +2281,31 @@
       return `<div class="card"><span class="eyebrow">Wichtige Termine — gesamtes Jahr</span><div class="term-grid">${cards}</div></div>`;
     }
 
-    function buildMediaCard(label, icon, key, withMigrate) {
+    function buildMediaCard(label, icon, key, withMigrate, yearFilterable) {
       let rows = '';
       const dragKey = 'list:' + key;
-      mediaLog[key].forEach((item, idx) => {
+      const allowDrag = !yearFilterable || listYearFilter === 'all';
+      const indices = yearFilterable ? getFilteredIndices(mediaLog[key]) : mediaLog[key].map((_, i) => i);
+      indices.forEach(idx => {
+        const item = mediaLog[key][idx];
         const mig = withMigrate ? `<button class="mig-btn" onclick="migrateBookToRead(${idx})" title="Als gelesen markieren" aria-label="Als gelesen markieren">→</button>` : '';
-        rows += `<div class="row"${dragRowAttrs(dragKey, idx)}>${dragHandleHTML(dragKey, idx)}<span class="static-dot">•</span><input type="text" id="item-${key}-${idx}" value="${escapeHtml(item.text)}" placeholder="Titel" oninput="updateItem('${key}',${idx}, this.value)">${mig}<button class="del-btn" onclick="deleteItem('${key}',${idx})" aria-label="Eintrag löschen">×</button></div>`;
+        const yearInput = yearFilterable ? `<input type="text" class="year-field" value="${escapeHtml(String(item.year || ''))}" maxlength="4" placeholder="${currentYear()}" onchange="updateItemYear('${key}',${idx}, this.value)">` : '';
+        rows += `<div class="row"${allowDrag ? dragRowAttrs(dragKey, idx) : ''}>${allowDrag ? dragHandleHTML(dragKey, idx) : ''}<span class="static-dot">•</span><input type="text" id="item-${key}-${idx}" value="${escapeHtml(item.text)}" placeholder="Titel" oninput="updateItem('${key}',${idx}, this.value)">${yearInput}${mig}<button class="del-btn" onclick="deleteItem('${key}',${idx})" aria-label="Eintrag löschen">×</button></div>`;
       });
+      if (!rows && yearFilterable && listYearFilter !== 'all') rows = `<div class="empty-hint">Keine Einträge in ${listYearFilter}.</div>`;
       return `<div class="card"><span class="eyebrow icon-row">${icon} ${label}</span><div class="rows">${rows}</div><button class="add-row" onclick="addItem('${key}')">+ Eintrag</button></div>`;
     }
 
     function buildCustomListCard(list) {
-      let rows = '';
       const dragKey = 'customlist:' + list.id;
-      list.items.forEach((item, idx) => {
-        rows += `<div class="row"${dragRowAttrs(dragKey, idx)}>${dragHandleHTML(dragKey, idx)}<span class="static-dot">•</span><input type="text" id="clitem-${list.id}-${idx}" value="${escapeHtml(item.text)}" placeholder="Eintrag" oninput="updateCustomListItem('${list.id}',${idx}, this.value)"><button class="del-btn" onclick="deleteCustomListItem('${list.id}',${idx})" aria-label="Eintrag löschen">×</button></div>`;
-      });
+      const allowDrag = listYearFilter === 'all';
+      const indices = getFilteredIndices(list.items);
+      let rows = indices.map(idx => {
+        const item = list.items[idx];
+        const yearInput = `<input type="text" class="year-field" value="${escapeHtml(String(item.year || ''))}" maxlength="4" placeholder="${currentYear()}" onchange="updateCustomListItemYear('${list.id}',${idx}, this.value)">`;
+        return `<div class="row"${allowDrag ? dragRowAttrs(dragKey, idx) : ''}>${allowDrag ? dragHandleHTML(dragKey, idx) : ''}<span class="static-dot">•</span><input type="text" id="clitem-${list.id}-${idx}" value="${escapeHtml(item.text)}" placeholder="Eintrag" oninput="updateCustomListItem('${list.id}',${idx}, this.value)">${yearInput}<button class="del-btn" onclick="deleteCustomListItem('${list.id}',${idx})" aria-label="Eintrag löschen">×</button></div>`;
+      }).join('');
+      if (!rows && listYearFilter !== 'all') rows = `<div class="empty-hint">Keine Einträge in ${listYearFilter}.</div>`;
       return `<div class="card">
     <div class="custom-list-head">
       <input type="text" id="clname-${list.id}" class="custom-list-name" value="${escapeHtml(list.name)}" placeholder="Name der Liste, z. B. Brettspiele" oninput="updateCustomListName('${list.id}', this.value)">
@@ -2247,19 +2325,34 @@
     }
 
     function buildMediaPage() {
-      return buildMediaCard('Bücher (gelesen)', bookIconHTML(), 'booksRead', false)
-        + buildMediaCard('Bücher (geplant)', bookIconHTML(), 'booksToRead', true)
-        + buildMediaCard('Filme & Serien', filmIconHTML(), 'movies', false)
-        + buildMediaCard('Podcasts', micIconHTML(), 'podcasts', false)
+      return buildYearBar()
+        + buildMediaCard('Bücher (gelesen)', bookIconHTML(), 'booksRead', false, true)
+        + buildMediaCard('Bücher (geplant)', bookIconHTML(), 'booksToRead', true, false)
+        + buildMediaCard('Filme & Serien', filmIconHTML(), 'movies', false, true)
+        + buildMediaCard('Podcasts', micIconHTML(), 'podcasts', false, true)
         + buildCustomListsSection();
     }
 
     function buildQuotesCard() {
-      let rows = mediaLog.quotes.map((item, idx) => `<div class="row"${dragRowAttrs('list:quotes', idx)}>${dragHandleHTML('list:quotes', idx)}<span class="static-dot">"</span><input type="text" id="item-quotes-${idx}" value="${escapeHtml(item.text)}" placeholder="Zitat" oninput="updateItem('quotes',${idx}, this.value)"><button class="del-btn" onclick="deleteItem('quotes',${idx})" aria-label="Eintrag löschen">×</button></div>`).join('');
+      const allowDrag = listYearFilter === 'all';
+      const indices = getFilteredIndices(mediaLog.quotes);
+      let rows = indices.map(idx => {
+        const item = mediaLog.quotes[idx];
+        const yearInput = `<input type="text" class="year-field" value="${escapeHtml(String(item.year || ''))}" maxlength="4" placeholder="${currentYear()}" onchange="updateItemYear('quotes',${idx}, this.value)">`;
+        return `<div class="row"${allowDrag ? dragRowAttrs('list:quotes', idx) : ''}>${allowDrag ? dragHandleHTML('list:quotes', idx) : ''}<span class="static-dot">"</span><input type="text" id="item-quotes-${idx}" value="${escapeHtml(item.text)}" placeholder="Zitat" oninput="updateItem('quotes',${idx}, this.value)">${yearInput}<button class="del-btn" onclick="deleteItem('quotes',${idx})" aria-label="Eintrag löschen">×</button></div>`;
+      }).join('');
+      if (!rows && listYearFilter !== 'all') rows = `<div class="empty-hint">Keine Zitate in ${listYearFilter}.</div>`;
       return `<div class="card"><span class="eyebrow">Zitate</span><div class="rows">${rows}</div><button class="add-row" onclick="addItem('quotes')">+ Zitat</button></div>`;
     }
     function buildAchievementsCard() {
-      let rows = mediaLog.achievements.map((item, idx) => `<div class="row"${dragRowAttrs('list:achievements', idx)}>${dragHandleHTML('list:achievements', idx)}<span class="trophy-mark">${trophyIconHTML()}</span><input type="text" id="item-achievements-${idx}" value="${escapeHtml(item.text)}" placeholder="Achievement" oninput="updateItem('achievements',${idx}, this.value)"><button class="del-btn" onclick="deleteItem('achievements',${idx})" aria-label="Eintrag löschen">×</button></div>`).join('');
+      const allowDrag = listYearFilter === 'all';
+      const indices = getFilteredIndices(mediaLog.achievements);
+      let rows = indices.map(idx => {
+        const item = mediaLog.achievements[idx];
+        const yearInput = `<input type="text" class="year-field" value="${escapeHtml(String(item.year || ''))}" maxlength="4" placeholder="${currentYear()}" onchange="updateItemYear('achievements',${idx}, this.value)">`;
+        return `<div class="row"${allowDrag ? dragRowAttrs('list:achievements', idx) : ''}>${allowDrag ? dragHandleHTML('list:achievements', idx) : ''}<span class="trophy-mark">${trophyIconHTML()}</span><input type="text" id="item-achievements-${idx}" value="${escapeHtml(item.text)}" placeholder="Achievement" oninput="updateItem('achievements',${idx}, this.value)">${yearInput}<button class="del-btn" onclick="deleteItem('achievements',${idx})" aria-label="Eintrag löschen">×</button></div>`;
+      }).join('');
+      if (!rows && listYearFilter !== 'all') rows = `<div class="empty-hint">Keine Achievements in ${listYearFilter}.</div>`;
       return `<div class="card"><span class="eyebrow">Achievements</span><div class="rows">${rows}</div><button class="add-row" onclick="addItem('achievements')">+ Achievement</button></div>`;
     }
 
@@ -2284,6 +2377,13 @@
         <div class="settings-row-sub">${darkMode ? 'Aktuell aktiv' : 'Aktuell aus'}</div>
       </div>
       <button class="toggle-btn${darkMode ? ' on' : ''}" onclick="toggleDarkMode()" aria-pressed="${darkMode}">${darkMode ? 'Dunkel' : 'Hell'}</button>
+    </div>
+    <div class="settings-row">
+      <div>
+        <div class="settings-row-title">Jahresleiste</div>
+        <div class="settings-row-sub">${yearBarEnabled ? 'Aktuell sichtbar bei Listen' : 'Aktuell ausgeblendet'}</div>
+      </div>
+      <button class="toggle-btn${yearBarEnabled ? ' on' : ''}" onclick="toggleYearBar()" aria-pressed="${yearBarEnabled}">${yearBarEnabled ? 'Ein' : 'Aus'}</button>
     </div>
     <div class="settings-row">
       <div>
@@ -2447,7 +2547,7 @@
       else if (currentPage === 'week') content = buildWeekPage();
       else if (currentPage === 'dates') content = buildDatesPage();
       else if (currentPage === 'media') content = buildMediaPage();
-      else if (currentPage === 'quotes') content = buildQuotesCard() + buildAchievementsCard();
+      else if (currentPage === 'quotes') content = buildYearBar() + buildQuotesCard() + buildAchievementsCard();
       else if (currentPage === 'settings') content = buildSettingsPage();
       else content = buildCoverPage();
 
