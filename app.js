@@ -26,7 +26,7 @@
     const SYMBOLS = ['•', '○', '–', '✓', '!', '✕', '›'];
     const WEATHER_LABELS = ['kein Eintrag', 'sonnig', 'bewölkt', 'Regen', 'Schnee', 'Gewitter'];
     const MONTH_NAMES = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'];
-    const APP_VERSION = '1.9.1';
+    const APP_VERSION = '1.10.0';
     const WEEKDAY_NAMES_FULL = ['Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag'];
 
     let currentPage = 'cover', weekOffset = 0, monthOffset = 0;
@@ -256,6 +256,7 @@
       await Promise.all([loadMediaLog(), loadWeek()]);
       await ensureMonthsForWeekLoaded();
       await ensureMonthLoaded(currentMonthId(0));
+      await ensureMonthLoaded(currentMonthId(-1));
       renderApp();
     }
 
@@ -965,6 +966,39 @@
       return `<div class="tabs">${tabs.map(([id, label]) => `<button class="tab-btn${currentPage === id ? ' active' : ''}" onclick="switchPage('${id}')">${label}</button>`).join('')}</div>`;
     }
 
+    function dayHasActiveHabit(date) {
+      const mId = dateToMonthId(date);
+      const m = monthsCache[mId];
+      if (!m) return false;
+      const dIdx = date.getDate() - 1;
+      return mediaLog.habits.some(h => { const arr = m.marks[h.id]; return arr ? !!arr[dIdx] : false; });
+    }
+    function computeStreak() {
+      if (!mediaLog.habits.length) return 0;
+      let d = new Date();
+      if (!dayHasActiveHabit(d)) d.setDate(d.getDate() - 1);
+      let streak = 0;
+      while (dayHasActiveHabit(d)) { streak++; d.setDate(d.getDate() - 1); }
+      return streak;
+    }
+    function streakStage(streak) {
+      if (streak >= 30) return 4;
+      if (streak >= 14) return 3;
+      if (streak >= 7) return 2;
+      if (streak >= 3) return 1;
+      return 0;
+    }
+    function growthIconHTML(stage) {
+      const c = 'var(--moss)';
+      const wrap = inner => `<svg viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="${c}" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">${inner}</svg>`;
+      const ground = '<line x1="5" y1="21" x2="19" y2="21"/>';
+      if (stage === 0) return wrap(ground + '<path d="M12 21v-5"/><path d="M12 17c-2-1-3-2.5-2-4.5"/>');
+      if (stage === 1) return wrap(ground + '<path d="M12 21v-9"/><path d="M12 14c-2-1-3-2.5-2-4.5"/><path d="M12 16c2-1 2.7-2.3 2.3-4"/>');
+      if (stage === 2) return wrap(ground + '<path d="M12 21V8"/><path d="M12 11c-2.3-1-3.6-2.8-2.7-5.4"/><path d="M12 14c2.3-1 3.6-2.8 2.7-5.4"/><path d="M12 17c-1.8-.6-3-1.8-2.6-3.6"/>');
+      if (stage === 3) return wrap(ground + `<path d="M12 21V6"/><path d="M12 9c-2.3-1-3.6-2.8-2.7-5.4"/><path d="M12 12c2.3-1 3.6-2.8 2.7-5.4"/><path d="M12 15c-1.8-.6-3-1.8-2.6-3.6"/><circle cx="12" cy="5" r="1.5" fill="${c}" stroke="none"/>`);
+      return wrap(`<path d="M5 19.5C5 12.5 9.5 5.5 19 5.5C19 14.5 13 19.5 5 19.5Z"/><path d="M6 18.5C9.5 14 13 10.5 18 6"/><circle cx="18" cy="6" r="1.6" fill="${c}" stroke="none"/>`);
+    }
+
     function buildCoverPage() {
       const today = new Date();
       const dateStr = WEEKDAY_NAMES_FULL[today.getDay()] + ', ' + today.getDate() + '. ' + MONTH_NAMES[today.getMonth()] + ' ' + today.getFullYear();
@@ -972,9 +1006,13 @@
       const total = mediaLog.habits.length;
       const done = mediaLog.habits.filter(h => getMark(mId, h.id, dIdx)).length;
       const quote = pickDailyQuote();
+      const streak = computeStreak();
+      const stage = streakStage(streak);
+      const streakLabel = streak === 0 ? 'Heute starten' : streak === 1 ? '1 Tag in Folge' : `${streak} Tage in Folge`;
       return `
     <div class="cover">
       <div class="cover-date">${dateStr}</div>
+      ${total > 0 ? `<div class="cover-growth" title="${streak} Tag${streak === 1 ? '' : 'e'} in Folge">${growthIconHTML(stage)}<div class="cover-growth-label">${streakLabel}</div></div>` : ''}
       ${quote ? `<blockquote class="cover-quote">${escapeHtml(quote.text)}</blockquote>` : `<p class="cover-empty">Noch keine Zitate gespeichert — trag eines im Tab „Zitate &amp; Achievements" ein.</p>`}
       ${total > 0 ? `<div class="cover-habit-status">${done} von ${total} Gewohnheiten heute erledigt</div>` : ''}
       <div class="cover-nav">
