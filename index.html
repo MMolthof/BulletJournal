@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Wochenplaner — Version 1.8.0 — Stand: 2026-06-24 -->
+<!-- Wochenplaner — Version 1.9.0 — Stand: 2026-06-26 -->
 <!-- Changelog wird separat in CHANGELOG.html gepflegt und zur Laufzeit per fetch() geladen. -->
 <html lang="de">
 
@@ -428,7 +428,7 @@
     }
 
     .year-field {
-      width: 48px;
+      width: 60px;
       flex-shrink: 0;
       font-family: 'IBM Plex Mono', monospace;
       font-size: 12px;
@@ -438,6 +438,7 @@
       border-bottom: 1px solid var(--rule-strong);
       padding: 3px 2px;
       text-align: center;
+      cursor: pointer;
     }
     .year-field:focus {
       outline: none;
@@ -1176,7 +1177,7 @@
     const SYMBOLS = ['•', '○', '–', '✓', '!', '✕', '›'];
     const WEATHER_LABELS = ['kein Eintrag', 'sonnig', 'bewölkt', 'Regen', 'Schnee', 'Gewitter'];
     const MONTH_NAMES = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'];
-    const APP_VERSION = '1.8.0';
+    const APP_VERSION = '1.9.0';
     const WEEKDAY_NAMES_FULL = ['Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag'];
 
     let currentPage = 'cover', weekOffset = 0, monthOffset = 0;
@@ -1190,6 +1191,15 @@
     let yearBarEnabled = localStorage.getItem('wochenplaner-yearbar') !== 'false';
     function toggleYearBar(){ yearBarEnabled = !yearBarEnabled; localStorage.setItem('wochenplaner-yearbar', yearBarEnabled ? 'true' : 'false'); renderApp(); }
     function currentYear(){ return new Date().getFullYear(); }
+    function yearSelectHTML(value, onchangeAttr) {
+      const cy = currentYear();
+      const v = value || cy;
+      const years = [];
+      for (let y = cy + 1; y >= cy - 14; y--) years.push(y);
+      if (!years.includes(v)) years.push(v);
+      years.sort((a, b) => b - a);
+      return `<select class="year-field" onchange="${onchangeAttr}">${years.map(y => `<option value="${y}"${y === v ? ' selected' : ''}>${y}</option>`).join('')}</select>`;
+    }
 
     const LIGHT_PALETTE = {
       '--paper': '#EDEEE5', '--paper-raised': '#F8F8F2', '--ink': '#28342F', '--ink-soft': '#5C6A62',
@@ -1327,7 +1337,7 @@
       if (typeof w.brainDump !== 'string') w.brainDump = '';
       return w;
     }
-    function defaultMediaLog() { return { booksRead: [], booksToRead: [], movies: [], podcasts: [], quotes: [], achievements: [], dates: [], habits: [], customLists: [] }; }
+    function defaultMediaLog() { return { booksRead: [], booksToRead: [], movies: [], podcasts: [], quotes: [], achievements: [], dates: [], habits: [], customLists: [], textareaSizes: { reflection: null, brainDump: null } }; }
     function normalizeMediaLog(m) {
       if (m.books && !m.booksRead) m.booksRead = m.books;
       ['booksRead', 'booksToRead', 'movies', 'podcasts', 'quotes', 'achievements', 'dates'].forEach(k => { if (!Array.isArray(m[k])) m[k] = []; });
@@ -1342,6 +1352,7 @@
         if (!Array.isArray(l.items)) l.items = [];
         l.items.forEach(item => { if (!item.year) item.year = currentYear(); });
       });
+      if (!m.textareaSizes || typeof m.textareaSizes !== 'object') m.textareaSizes = { reflection: null, brainDump: null };
       return m;
     }
 
@@ -1765,6 +1776,30 @@
     function updateFocus(i, v) { weekData.focus[i] = v; scheduleSaveWeek(); }
     function updateReflection(v) { weekData.reflection = v; scheduleSaveWeek(); }
     function updateBrainDump(v) { weekData.brainDump = v; scheduleSaveWeek(); }
+
+    function attachTextareaResizeTracking() {
+      const map = { 'reflection-textarea': 'reflection', 'braindump-textarea': 'brainDump' };
+      Object.keys(map).forEach(id => {
+        const el = document.getElementById(id);
+        if (!el || typeof ResizeObserver === 'undefined') return;
+        let skip = true;
+        const ro = new ResizeObserver(entries => {
+          if (skip) { skip = false; return; }
+          const h = Math.round(entries[0].contentRect.height);
+          if (!mediaLog.textareaSizes) mediaLog.textareaSizes = { reflection: null, brainDump: null };
+          if (mediaLog.textareaSizes[map[id]] !== h) {
+            mediaLog.textareaSizes[map[id]] = h;
+            scheduleSaveMedia();
+          }
+        });
+        ro.observe(el);
+      });
+    }
+    function resetTextareaSizes() {
+      mediaLog.textareaSizes = { reflection: null, brainDump: null };
+      scheduleSaveMedia();
+      renderApp();
+    }
     function cycleWeather(dk) { weekData.weather[dk] = (weekData.weather[dk] + 1) % WEATHER_LABELS.length; scheduleSaveWeek(); renderApp(); }
 
     function addHabitDef() { if (mediaLog.habits.length >= 30) return; const newId = genId(); mediaLog.habits.push({ id: newId, name: '' }); pendingFocusId = 'habitname-' + newId; scheduleSaveMedia(); renderApp(); }
@@ -2256,10 +2291,10 @@
       ${buildWeekMoodChart(weekDates)}
     </div>
     <div class="card textbox"><span class="eyebrow">Wochenrückblick</span>
-      <textarea placeholder="Was lief gut? Was nehme ich mit in die nächste Woche?" oninput="updateReflection(this.value)">${escapeHtml(weekData.reflection)}</textarea>
+      <textarea id="reflection-textarea"${mediaLog.textareaSizes && mediaLog.textareaSizes.reflection ? ` style="height:${mediaLog.textareaSizes.reflection}px"` : ''} placeholder="Was lief gut? Was nehme ich mit in die nächste Woche?" oninput="updateReflection(this.value)">${escapeHtml(weekData.reflection)}</textarea>
     </div>
     <div class="card textbox"><span class="eyebrow">Braindump</span>
-      <textarea placeholder="Alles, was dir durch den Kopf geht — ohne Struktur, einfach festhalten." oninput="updateBrainDump(this.value)">${escapeHtml(weekData.brainDump)}</textarea>
+      <textarea id="braindump-textarea"${mediaLog.textareaSizes && mediaLog.textareaSizes.brainDump ? ` style="height:${mediaLog.textareaSizes.brainDump}px"` : ''} placeholder="Alles, was dir durch den Kopf geht — ohne Struktur, einfach festhalten." oninput="updateBrainDump(this.value)">${escapeHtml(weekData.brainDump)}</textarea>
     </div>
   `;
     }
@@ -2289,7 +2324,7 @@
       indices.forEach(idx => {
         const item = mediaLog[key][idx];
         const mig = withMigrate ? `<button class="mig-btn" onclick="migrateBookToRead(${idx})" title="Als gelesen markieren" aria-label="Als gelesen markieren">→</button>` : '';
-        const yearInput = yearFilterable ? `<input type="text" class="year-field" value="${escapeHtml(String(item.year || ''))}" maxlength="4" placeholder="${currentYear()}" onchange="updateItemYear('${key}',${idx}, this.value)">` : '';
+        const yearInput = yearFilterable ? yearSelectHTML(item.year, `updateItemYear('${key}',${idx}, this.value)`) : '';
         rows += `<div class="row"${allowDrag ? dragRowAttrs(dragKey, idx) : ''}>${allowDrag ? dragHandleHTML(dragKey, idx) : ''}<span class="static-dot">•</span><input type="text" id="item-${key}-${idx}" value="${escapeHtml(item.text)}" placeholder="Titel" oninput="updateItem('${key}',${idx}, this.value)">${yearInput}${mig}<button class="del-btn" onclick="deleteItem('${key}',${idx})" aria-label="Eintrag löschen">×</button></div>`;
       });
       if (!rows && yearFilterable && listYearFilter !== 'all') rows = `<div class="empty-hint">Keine Einträge in ${listYearFilter}.</div>`;
@@ -2302,7 +2337,7 @@
       const indices = getFilteredIndices(list.items);
       let rows = indices.map(idx => {
         const item = list.items[idx];
-        const yearInput = `<input type="text" class="year-field" value="${escapeHtml(String(item.year || ''))}" maxlength="4" placeholder="${currentYear()}" onchange="updateCustomListItemYear('${list.id}',${idx}, this.value)">`;
+        const yearInput = yearSelectHTML(item.year, `updateCustomListItemYear('${list.id}',${idx}, this.value)`);
         return `<div class="row"${allowDrag ? dragRowAttrs(dragKey, idx) : ''}>${allowDrag ? dragHandleHTML(dragKey, idx) : ''}<span class="static-dot">•</span><input type="text" id="clitem-${list.id}-${idx}" value="${escapeHtml(item.text)}" placeholder="Eintrag" oninput="updateCustomListItem('${list.id}',${idx}, this.value)">${yearInput}<button class="del-btn" onclick="deleteCustomListItem('${list.id}',${idx})" aria-label="Eintrag löschen">×</button></div>`;
       }).join('');
       if (!rows && listYearFilter !== 'all') rows = `<div class="empty-hint">Keine Einträge in ${listYearFilter}.</div>`;
@@ -2338,7 +2373,7 @@
       const indices = getFilteredIndices(mediaLog.quotes);
       let rows = indices.map(idx => {
         const item = mediaLog.quotes[idx];
-        const yearInput = `<input type="text" class="year-field" value="${escapeHtml(String(item.year || ''))}" maxlength="4" placeholder="${currentYear()}" onchange="updateItemYear('quotes',${idx}, this.value)">`;
+        const yearInput = yearSelectHTML(item.year, `updateItemYear('quotes',${idx}, this.value)`);
         return `<div class="row"${allowDrag ? dragRowAttrs('list:quotes', idx) : ''}>${allowDrag ? dragHandleHTML('list:quotes', idx) : ''}<span class="static-dot">"</span><input type="text" id="item-quotes-${idx}" value="${escapeHtml(item.text)}" placeholder="Zitat" oninput="updateItem('quotes',${idx}, this.value)">${yearInput}<button class="del-btn" onclick="deleteItem('quotes',${idx})" aria-label="Eintrag löschen">×</button></div>`;
       }).join('');
       if (!rows && listYearFilter !== 'all') rows = `<div class="empty-hint">Keine Zitate in ${listYearFilter}.</div>`;
@@ -2349,7 +2384,7 @@
       const indices = getFilteredIndices(mediaLog.achievements);
       let rows = indices.map(idx => {
         const item = mediaLog.achievements[idx];
-        const yearInput = `<input type="text" class="year-field" value="${escapeHtml(String(item.year || ''))}" maxlength="4" placeholder="${currentYear()}" onchange="updateItemYear('achievements',${idx}, this.value)">`;
+        const yearInput = yearSelectHTML(item.year, `updateItemYear('achievements',${idx}, this.value)`);
         return `<div class="row"${allowDrag ? dragRowAttrs('list:achievements', idx) : ''}>${allowDrag ? dragHandleHTML('list:achievements', idx) : ''}<span class="trophy-mark">${trophyIconHTML()}</span><input type="text" id="item-achievements-${idx}" value="${escapeHtml(item.text)}" placeholder="Achievement" oninput="updateItem('achievements',${idx}, this.value)">${yearInput}<button class="del-btn" onclick="deleteItem('achievements',${idx})" aria-label="Eintrag löschen">×</button></div>`;
       }).join('');
       if (!rows && listYearFilter !== 'all') rows = `<div class="empty-hint">Keine Achievements in ${listYearFilter}.</div>`;
@@ -2384,6 +2419,13 @@
         <div class="settings-row-sub">${yearBarEnabled ? 'Aktuell sichtbar bei Listen' : 'Aktuell ausgeblendet'}</div>
       </div>
       <button class="toggle-btn${yearBarEnabled ? ' on' : ''}" onclick="toggleYearBar()" aria-pressed="${yearBarEnabled}">${yearBarEnabled ? 'Ein' : 'Aus'}</button>
+    </div>
+    <div class="settings-row">
+      <div>
+        <div class="settings-row-title">Textfeld-Größen</div>
+        <div class="settings-row-sub">Wochenrückblick &amp; Braindump auf Standardgröße zurücksetzen</div>
+      </div>
+      <button class="toggle-btn" onclick="resetTextareaSizes()">Zurücksetzen</button>
     </div>
     <div class="settings-row">
       <div>
@@ -2566,6 +2608,7 @@
         if (el) el.focus();
         pendingFocusId = null;
       }
+      if (currentPage === 'week') attachTextareaResizeTracking();
     }
 
     init();
