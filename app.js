@@ -1308,6 +1308,7 @@
       </div>
       <button class="toggle-btn${darkMode ? ' on' : ''}" onclick="toggleDarkMode()" aria-pressed="${darkMode}">${darkMode ? 'Dunkel' : 'Hell'}</button>
     </div>
+    <div class="settings-divider"></div>
     <div class="settings-row">
       <div>
         <div class="settings-row-title">Jahresleiste</div>
@@ -1315,6 +1316,7 @@
       </div>
       <button class="toggle-btn${yearBarEnabled ? ' on' : ''}" onclick="toggleYearBar()" aria-pressed="${yearBarEnabled}">${yearBarEnabled ? 'Ein' : 'Aus'}</button>
     </div>
+    <div class="settings-divider"></div>
     <div class="settings-row">
       <div>
         <div class="settings-row-title">Textfeld-Größen</div>
@@ -1322,6 +1324,7 @@
       </div>
       <button class="toggle-btn" onclick="resetTextareaSizes()">Zurücksetzen</button>
     </div>
+    <div class="settings-divider"></div>
     <div class="settings-row">
       <div>
         <div class="settings-row-title">Keys</div>
