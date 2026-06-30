@@ -26,7 +26,7 @@
     const SYMBOLS = ['•', '○', '–', '✓', '!', '✕', '›'];
     const WEATHER_LABELS = ['kein Eintrag', 'sonnig', 'bewölkt', 'Regen', 'Schnee', 'Gewitter'];
     const MONTH_NAMES = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'];
-    const APP_VERSION = '1.11.0';
+    const APP_VERSION = '1.11.1';
     const WEEKDAY_NAMES_FULL = ['Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag'];
 
     let currentPage = 'cover', weekOffset = 0, monthOffset = 0;
@@ -88,6 +88,7 @@
     }
 
     function getMonday(o) { const d = new Date(); d.setHours(0, 0, 0, 0); const day = d.getDay() || 7; d.setDate(d.getDate() - (day - 1) + o * 7); return d; }
+    function mondayIndex(date) { const d = date.getDay(); return d === 0 ? 6 : d - 1; }
     function isoWeekNumber(d) { const date = new Date(d.getTime()); date.setHours(0, 0, 0, 0); date.setDate(date.getDate() + 3 - ((date.getDay() + 6) % 7)); const w1 = new Date(date.getFullYear(), 0, 4); return 1 + Math.round(((date - w1) / 86400000 - 3 + ((w1.getDay() + 6) % 7)) / 7); }
     function fmtDate(d) { return String(d.getDate()).padStart(2, '0') + '.' + String(d.getMonth() + 1).padStart(2, '0') + '.'; }
     function weekDocId() { const m = getMonday(weekOffset); return m.getFullYear() + '-' + String(isoWeekNumber(m)).padStart(2, '0'); }
@@ -103,7 +104,7 @@
     function daysInMonthId(id) { const { y, m } = monthIdParts(id); return new Date(y, m, 0).getDate(); }
     function monthLabel(id) { const { y, m } = monthIdParts(id); return MONTH_NAMES[m - 1] + ' ' + y; }
     function currentMonthId(offset) { const d = new Date(); d.setDate(1); d.setMonth(d.getMonth() + offset); return dateToMonthId(d); }
-    function firstWeekdayIndex(id) { const { y, m } = monthIdParts(id); const wd = new Date(y, m - 1, 1).getDay(); return wd === 0 ? 6 : wd - 1; }
+    function firstWeekdayIndex(id) { const { y, m } = monthIdParts(id); return mondayIndex(new Date(y, m - 1, 1)); }
     function parseDM(d) { const m = /^(\d{1,2})\.(\d{1,2})\.?$/.exec((d || '').trim()); return m ? { day: parseInt(m[1], 10), month: parseInt(m[2], 10) } : null; }
     function parseDateKey(d) { const p = parseDM(d); return p ? p.month * 100 + p.day : 9999; }
     function genId() { return 'h' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
@@ -571,7 +572,7 @@
       const row = weekData.days[dk][idx];
       if (!row) return;
       if (!row.id) row.id = genId();
-      const dayOrder = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
+      const dayOrder = WEEKDAYS.map(d => d.key);
       const curPos = dayOrder.indexOf(dk);
       const monday = getMonday(weekOffset);
       const curDate = new Date(monday); curDate.setDate(curDate.getDate() + curPos);
@@ -621,14 +622,17 @@
         const i = arr.findIndex(e => e.id === ref.id);
         if (i !== -1) arr.splice(i, 1);
         await weekRefById(ref.weekId).set({ payload: JSON.stringify(target) });
-      } catch (e) { console.error('Migration zurücknehmen fehlgeschlagen:', e); }
+      } catch (e) { console.error('Migration zurücknehmen fehlgeschlagen:', e); flashStatus('Verschieben zurücknehmen fehlgeschlagen', true); }
     }
 
     function updateFocus(i, v) { weekData.focus[i] = v; scheduleSaveWeek(); }
     function updateReflection(v) { weekData.reflection = v; scheduleSaveWeek(); }
     function updateBrainDump(v) { weekData.brainDump = v; scheduleSaveWeek(); }
 
+    let activeResizeObservers = [];
     function attachTextareaResizeTracking() {
+      activeResizeObservers.forEach(ro => ro.disconnect());
+      activeResizeObservers = [];
       const map = { 'reflection-textarea': 'reflection', 'braindump-textarea': 'brainDump' };
       Object.keys(map).forEach(id => {
         const el = document.getElementById(id);
@@ -644,6 +648,7 @@
           }
         });
         ro.observe(el);
+        activeResizeObservers.push(ro);
       });
     }
     function resetTextareaSizes() {
@@ -988,7 +993,7 @@
       const wId = weekDocIdForDate(date);
       const w = weekCache[wId];
       if (!w) return false;
-      const dk = WEEKDAYS[(date.getDay() + 6) % 7].key;
+      const dk = WEEKDAYS[mondayIndex(date)].key;
       const arr = w.days[dk];
       return Array.isArray(arr) && arr.length > 0;
     }
@@ -1151,7 +1156,7 @@
     function buildWeekPage() {
       const monday = getMonday(weekOffset), week = isoWeekNumber(monday);
       const sunday = new Date(monday); sunday.setDate(sunday.getDate() + 6);
-      const todayIdx = (() => { if (weekOffset !== 0) return -1; const d = new Date().getDay(); return d === 0 ? 6 : d - 1; })();
+      const todayIdx = weekOffset !== 0 ? -1 : mondayIndex(new Date());
       const weekDates = []; for (let i = 0; i < 7; i++) { const d = new Date(monday); d.setDate(d.getDate() + i); weekDates.push(d); }
 
       let daysHtml = '';
@@ -1241,7 +1246,12 @@
       return `<div class="card"><span class="eyebrow">Wichtige Termine — gesamtes Jahr</span><div class="term-grid">${cards}</div></div>`;
     }
 
-    function buildMediaCard(label, icon, key, withMigrate, yearFilterable) {
+    function buildMediaCard(label, icon, key, withMigrate, yearFilterable, opts) {
+      opts = opts || {};
+      const marker = opts.marker || '<span class="static-dot">•</span>';
+      const placeholder = opts.placeholder || 'Titel';
+      const addLabel = opts.addLabel || 'Eintrag';
+      const emptyLabel = opts.emptyLabel || 'Einträge';
       let rows = '';
       const dragKey = 'list:' + key;
       const allowDrag = !yearFilterable || listYearFilter === 'all';
@@ -1250,10 +1260,11 @@
         const item = mediaLog[key][idx];
         const mig = withMigrate ? `<button class="mig-btn" onclick="migrateBookToRead(${idx})" title="Als gelesen markieren" aria-label="Als gelesen markieren">→</button>` : '';
         const yearInput = yearFilterable ? yearSelectHTML(item.year, `updateItemYear('${key}',${idx}, this.value)`) : '';
-        rows += `<div class="row"${allowDrag ? dragRowAttrs(dragKey, idx) : ''}>${allowDrag ? dragHandleHTML(dragKey, idx) : ''}<span class="static-dot">•</span><input type="text" id="item-${key}-${idx}" value="${escapeHtml(item.text)}" placeholder="Titel" oninput="updateItem('${key}',${idx}, this.value)">${yearInput}${mig}<button class="del-btn" onclick="deleteItem('${key}',${idx})" aria-label="Eintrag löschen">×</button></div>`;
+        rows += `<div class="row"${allowDrag ? dragRowAttrs(dragKey, idx) : ''}>${allowDrag ? dragHandleHTML(dragKey, idx) : ''}${marker}<input type="text" id="item-${key}-${idx}" value="${escapeHtml(item.text)}" placeholder="${placeholder}" oninput="updateItem('${key}',${idx}, this.value)">${yearInput}${mig}<button class="del-btn" onclick="deleteItem('${key}',${idx})" aria-label="Eintrag löschen">×</button></div>`;
       });
-      if (!rows && yearFilterable && listYearFilter !== 'all') rows = `<div class="empty-hint">Keine Einträge in ${listYearFilter}.</div>`;
-      return `<div class="card"><span class="eyebrow icon-row">${icon} ${label}</span><div class="rows">${rows}</div><button class="add-row" onclick="addItem('${key}')">+ Eintrag</button></div>`;
+      if (!rows && yearFilterable && listYearFilter !== 'all') rows = `<div class="empty-hint">Keine ${emptyLabel} in ${listYearFilter}.</div>`;
+      const eyebrow = icon ? `<span class="eyebrow icon-row">${icon} ${label}</span>` : `<span class="eyebrow">${label}</span>`;
+      return `<div class="card">${eyebrow}<div class="rows">${rows}</div><button class="add-row" onclick="addItem('${key}')">+ ${addLabel}</button></div>`;
     }
 
     function buildCustomListCard(list) {
@@ -1294,26 +1305,10 @@
     }
 
     function buildQuotesCard() {
-      const allowDrag = listYearFilter === 'all';
-      const indices = getFilteredIndices(mediaLog.quotes);
-      let rows = indices.map(idx => {
-        const item = mediaLog.quotes[idx];
-        const yearInput = yearSelectHTML(item.year, `updateItemYear('quotes',${idx}, this.value)`);
-        return `<div class="row"${allowDrag ? dragRowAttrs('list:quotes', idx) : ''}>${allowDrag ? dragHandleHTML('list:quotes', idx) : ''}<span class="static-dot">"</span><input type="text" id="item-quotes-${idx}" value="${escapeHtml(item.text)}" placeholder="Zitat" oninput="updateItem('quotes',${idx}, this.value)">${yearInput}<button class="del-btn" onclick="deleteItem('quotes',${idx})" aria-label="Eintrag löschen">×</button></div>`;
-      }).join('');
-      if (!rows && listYearFilter !== 'all') rows = `<div class="empty-hint">Keine Zitate in ${listYearFilter}.</div>`;
-      return `<div class="card"><span class="eyebrow">Zitate</span><div class="rows">${rows}</div><button class="add-row" onclick="addItem('quotes')">+ Zitat</button></div>`;
+      return buildMediaCard('Zitate', '', 'quotes', false, true, { marker: '<span class="static-dot">"</span>', placeholder: 'Zitat', addLabel: 'Zitat', emptyLabel: 'Zitate' });
     }
     function buildAchievementsCard() {
-      const allowDrag = listYearFilter === 'all';
-      const indices = getFilteredIndices(mediaLog.achievements);
-      let rows = indices.map(idx => {
-        const item = mediaLog.achievements[idx];
-        const yearInput = yearSelectHTML(item.year, `updateItemYear('achievements',${idx}, this.value)`);
-        return `<div class="row"${allowDrag ? dragRowAttrs('list:achievements', idx) : ''}>${allowDrag ? dragHandleHTML('list:achievements', idx) : ''}<span class="trophy-mark">${trophyIconHTML()}</span><input type="text" id="item-achievements-${idx}" value="${escapeHtml(item.text)}" placeholder="Achievement" oninput="updateItem('achievements',${idx}, this.value)">${yearInput}<button class="del-btn" onclick="deleteItem('achievements',${idx})" aria-label="Eintrag löschen">×</button></div>`;
-      }).join('');
-      if (!rows && listYearFilter !== 'all') rows = `<div class="empty-hint">Keine Achievements in ${listYearFilter}.</div>`;
-      return `<div class="card"><span class="eyebrow">Achievements</span><div class="rows">${rows}</div><button class="add-row" onclick="addItem('achievements')">+ Achievement</button></div>`;
+      return buildMediaCard('Achievements', '', 'achievements', false, true, { marker: `<span class="trophy-mark">${trophyIconHTML()}</span>`, placeholder: 'Achievement', addLabel: 'Achievement', emptyLabel: 'Achievements' });
     }
 
     function buildSettingsPage() {
