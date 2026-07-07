@@ -26,13 +26,15 @@
     const SYMBOLS = ['•', '○', '–', '✓', '!', '✕', '›'];
     const WEATHER_LABELS = ['kein Eintrag', 'sonnig', 'bewölkt', 'Regen', 'Schnee', 'Gewitter'];
     const MONTH_NAMES = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'];
-    const APP_VERSION = '1.11.1';
+    const APP_VERSION = '1.12.0';
     const WEEKDAY_NAMES_FULL = ['Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag'];
 
     let currentPage = 'cover', weekOffset = 0, monthOffset = 0;
     let pendingFocusId = null;
     let weekData = null, mediaLog = null, monthsCache = {};
     let saveWeekTimer = null, saveMediaTimer = null, saveMonthTimers = {};
+    let deferredPWAPrompt = null;
+    window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferredPWAPrompt = e; });
 
     let customColors = JSON.parse(localStorage.getItem('wochenplaner-colors')) || {};
     let darkMode = localStorage.getItem('wochenplaner-darkmode') === 'true';
@@ -187,7 +189,7 @@
       if (typeof w.brainDump !== 'string') w.brainDump = '';
       return w;
     }
-    function defaultMediaLog() { return { booksRead: [], booksToRead: [], movies: [], podcasts: [], quotes: [], achievements: [], dates: [], habits: [], customLists: [], textareaSizes: { reflection: null, brainDump: null } }; }
+    function defaultMediaLog() { return { booksRead: [], booksToRead: [], movies: [], podcasts: [], quotes: [], achievements: [], dates: [], habits: [], customLists: [], textareaSizes: { reflection: null, brainDump: null }, onboarded: false }; }
     function normalizeMediaLog(m) {
       if (m.books && !m.booksRead) m.booksRead = m.books;
       ['booksRead', 'booksToRead', 'movies', 'podcasts', 'quotes', 'achievements', 'dates'].forEach(k => { if (!Array.isArray(m[k])) m[k] = []; });
@@ -203,6 +205,7 @@
         l.items.forEach(item => { if (!item.year) item.year = currentYear(); });
       });
       if (!m.textareaSizes || typeof m.textareaSizes !== 'object') m.textareaSizes = { reflection: null, brainDump: null };
+      if (m.onboarded === undefined) m.onboarded = true; // bestehende Accounts überspringen Onboarding
       return m;
     }
 
@@ -255,6 +258,7 @@
       applyTheme();
       document.getElementById('app').innerHTML = '<div class="loading">lädt …</div>';
       await Promise.all([loadMediaLog(), loadWeek()]);
+      if (!mediaLog.onboarded) { window.location.href = './onboarding.html'; return; }
       await ensureMonthsForWeekLoaded();
       await ensureMonthLoaded(currentMonthId(0));
       await ensureMonthLoaded(currentMonthId(-1));
@@ -1460,7 +1464,29 @@
     </div>
   </div>`;
 
-      return appearanceCard + colorHtml + dataCard + legalCard + aboutCard + feedbackCard + dangerCard;
+      const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+      const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent) && !window.navigator.standalone;
+      let pwaRow = '';
+      if (isStandalone) {
+        pwaRow = `<div class="settings-row"><div><div class="settings-row-title">App installieren</div><div class="settings-row-sub">Bereits als App installiert ✓</div></div></div>`;
+      } else if (deferredPWAPrompt) {
+        pwaRow = `<div class="settings-row"><div><div class="settings-row-title">App installieren</div><div class="settings-row-sub">Zum Startbildschirm hinzufügen — kein App Store nötig</div></div><button class="toggle-btn on" onclick="installPWA()">Installieren</button></div>`;
+      } else if (isIOS) {
+        pwaRow = `<div class="settings-row"><div><div class="settings-row-title">App installieren (iOS)</div><div class="settings-row-sub">Tippe auf das Teilen-Symbol <strong>↑</strong> in Safari, dann „Zum Home-Bildschirm"</div></div></div>`;
+      } else {
+        pwaRow = `<div class="settings-row"><div><div class="settings-row-title">App installieren</div><div class="settings-row-sub">Über das Browser-Menü → „App installieren" oder „Zum Startbildschirm"</div></div></div>`;
+      }
+
+      const pwaCard = `<div class="card"><span class="eyebrow">App installieren</span>${pwaRow}</div>`;
+
+      return appearanceCard + colorHtml + pwaCard + dataCard + legalCard + aboutCard + feedbackCard + dangerCard;
+    }
+
+    async function installPWA() {
+      if (!deferredPWAPrompt) return;
+      deferredPWAPrompt.prompt();
+      const { outcome } = await deferredPWAPrompt.userChoice;
+      if (outcome === 'accepted') { deferredPWAPrompt = null; renderApp(); }
     }
 
     function weatherIconHTML(idx) {

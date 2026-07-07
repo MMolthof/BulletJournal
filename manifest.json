@@ -1,0 +1,18 @@
+{
+  "name": "Wochenplaner",
+  "short_name": "Wochenplaner",
+  "description": "Dein digitales Bullet Journal",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#EDEEE5",
+  "theme_color": "#5B7A5C",
+  "lang": "de",
+  "icons": [
+    {
+      "src": "favicon.svg",
+      "type": "image/svg+xml",
+      "sizes": "any",
+      "purpose": "any"
+    }
+  ]
+}

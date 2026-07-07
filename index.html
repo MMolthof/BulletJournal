@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Wochenplaner — Version 1.11.1 — Stand: 2026-06-26 -->
+<!-- Wochenplaner — Version 1.12.0 — Stand: 2026-07-07 -->
 <!-- Changelog wird separat in CHANGELOG.html gepflegt und zur Laufzeit per fetch() geladen. -->
 <html lang="de">
 
@@ -7,15 +7,30 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Wochenplaner</title>
+
+  <!-- SEO & Social -->
+  <meta name="description" content="Dein digitales Bullet Journal — Gewohnheiten, Wochenplanung und Reflexion an einem Ort.">
+  <meta property="og:title" content="Wochenplaner">
+  <meta property="og:description" content="Dein digitales Bullet Journal — Gewohnheiten, Wochenplanung und Reflexion an einem Ort.">
+  <meta property="og:type" content="website">
+  <meta name="theme-color" content="#5B7A5C">
+
+  <!-- PWA -->
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="apple-touch-icon" href="favicon.svg">
+
+  <!-- Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link
-    href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap"
-    rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+  <!-- Firebase -->
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
-  <link rel="stylesheet" href="style.css?v=1.11.1">
+
+  <link rel="stylesheet" href="style.css?v=1.12.0">
 </head>
 
 <body>
@@ -23,7 +38,15 @@
     <div class="loading">lädt …</div>
   </div>
   <div class="status" id="status">gespeichert</div>
-  <script src="app.js?v=1.11.1"></script>
+  <script src="app.js?v=1.12.0"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' })
+          .catch(err => console.warn('SW-Registrierung fehlgeschlagen:', err));
+      });
+    }
+  </script>
 </body>
 
 </html>

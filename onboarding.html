@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<!-- Wochenplaner — Onboarding -->
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Willkommen — Wochenplaner</title>
+  <meta name="theme-color" content="#5B7A5C">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+  <link rel="stylesheet" href="style.css?v=1.12.0">
+  <style>
+    .onb-wrap { max-width: 480px; margin: 0 auto; padding: 32px 20px 60px; }
+    .onb-logo { display: flex; align-items: center; gap: 10px; margin-bottom: 32px; }
+    .onb-logo svg { flex-shrink: 0; }
+    .onb-logo-text { font-family: 'Fraunces', serif; font-size: 22px; color: var(--ink); font-weight: 600; }
+    .onb-progress { display: flex; gap: 6px; margin-bottom: 28px; }
+    .onb-dot { height: 3px; flex: 1; border-radius: 2px; background: var(--rule); transition: background 0.3s; }
+    .onb-dot.active { background: var(--moss); }
+    .onb-step { display: none; }
+    .onb-step.visible { display: block; }
+    .onb-title { font-family: 'Fraunces', serif; font-size: 24px; font-weight: 600; color: var(--ink); margin: 0 0 8px; line-height: 1.25; }
+    .onb-sub { font-size: 14px; color: var(--ink-soft); line-height: 1.6; margin: 0 0 28px; }
+    .onb-actions { display: flex; gap: 10px; margin-top: 28px; align-items: center; }
+    .onb-btn-primary { font-family: 'Inter', sans-serif; font-size: 14px; font-weight: 500; background: var(--moss); color: var(--paper-raised); border: none; border-radius: 20px; padding: 10px 24px; cursor: pointer; }
+    .onb-btn-primary:hover { opacity: 0.88; }
+    .onb-btn-primary:disabled { opacity: 0.45; cursor: default; }
+    .onb-btn-back { font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: var(--ink-soft); background: none; border: none; cursor: pointer; padding: 6px 0; }
+    .onb-btn-back:hover { color: var(--ink); }
+    /* Habit-Eingabe */
+    .habit-input-row { display: flex; gap: 8px; margin-bottom: 12px; }
+    .habit-input-row input { flex: 1; font-family: 'Inter', sans-serif; font-size: 14px; border: 1px solid var(--rule-strong); border-radius: 8px; padding: 8px 12px; background: var(--paper-raised); color: var(--ink); }
+    .habit-input-row input:focus { outline: none; border-color: var(--moss); }
+    .habit-add-btn { font-family: 'IBM Plex Mono', monospace; font-size: 13px; background: none; border: 1px solid var(--rule-strong); border-radius: 8px; padding: 8px 14px; cursor: pointer; color: var(--ink-soft); white-space: nowrap; }
+    .habit-add-btn:hover { border-color: var(--moss); color: var(--moss); }
+    .habit-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; }
+    .habit-item { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--ink); background: var(--paper-raised); border: 1px solid var(--rule); border-radius: 8px; padding: 8px 12px; }
+    .habit-item button { margin-left: auto; background: none; border: none; cursor: pointer; color: var(--ink-soft); font-size: 16px; line-height: 1; padding: 0 2px; }
+    .habit-item button:hover { color: var(--ink); }
+    .onb-hint { font-size: 12px; color: var(--ink-soft); font-family: 'IBM Plex Mono', monospace; }
+    /* Symbole */
+    .key-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 8px; }
+    .key-row { display: flex; align-items: flex-start; gap: 10px; background: var(--paper-raised); border: 1px solid var(--rule); border-radius: 8px; padding: 10px 12px; }
+    .key-sym { font-family: 'IBM Plex Mono', monospace; font-size: 16px; color: var(--moss); min-width: 18px; flex-shrink: 0; text-align: center; }
+    .key-label { font-size: 12px; color: var(--ink); font-weight: 500; }
+    .key-desc { font-size: 11px; color: var(--ink-soft); line-height: 1.4; margin-top: 1px; }
+    /* Wetter */
+    .weather-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 8px; }
+    .weather-row { display: flex; align-items: center; gap: 10px; background: var(--paper-raised); border: 1px solid var(--rule); border-radius: 8px; padding: 10px 12px; }
+    .weather-label { font-size: 13px; color: var(--ink); }
+    /* Step 1 welcome */
+    .onb-welcome-icon { display: flex; justify-content: center; margin-bottom: 24px; }
+    .onb-done-icon { display: flex; justify-content: center; margin-bottom: 16px; }
+    .loading { text-align: center; padding: 80px 20px; font-family: 'IBM Plex Mono', monospace; font-size: 13px; color: var(--ink-soft); }
+  </style>
+</head>
+<body>
+  <div id="app-loading" class="loading">lädt …</div>
+  <div id="onb-root" class="onb-wrap" style="display:none">
+
+    <!-- Fortschrittsbalken -->
+    <div class="onb-progress">
+      <div class="onb-dot" id="dot-0"></div>
+      <div class="onb-dot" id="dot-1"></div>
+      <div class="onb-dot" id="dot-2"></div>
+      <div class="onb-dot" id="dot-3"></div>
+    </div>
+
+    <!-- SCHRITT 0: Willkommen -->
+    <div class="onb-step" id="step-0">
+      <div class="onb-welcome-icon">
+        <svg viewBox="0 0 56 56" width="80" height="80">
+          <rect width="56" height="56" rx="14" fill="#5B7A5C"/>
+          <path d="M10 46C10 28 21 10 46 10C46 32 31 46 10 46Z" fill="#F8F8F2"/>
+          <path d="M12 44C21 33 31 23 44 12" fill="none" stroke="#5B7A5C" stroke-width="2.2" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <h1 class="onb-title">Willkommen beim<br>Wochenplaner.</h1>
+      <p class="onb-sub">Dein digitales Bullet Journal — Gewohnheiten tracken, Wochen planen, Gedanken festhalten. Alles an einem Ort, ohne Overhead.<br><br>Wir richten deinen Wochenplaner in ein paar Schritten ein.</p>
+      <div class="onb-actions">
+        <button class="onb-btn-primary" onclick="goStep(1)">Los geht's →</button>
+      </div>
+    </div>
+
+    <!-- SCHRITT 1: Erste Gewohnheit -->
+    <div class="onb-step" id="step-1">
+      <h1 class="onb-title">Deine ersten Gewohnheiten</h1>
+      <p class="onb-sub">Gewohnheiten sind das Herzstück des Wochenplaners. Du kannst sie jeden Tag in der Wochenansicht abhaken — und siehst deinen Fortschritt im Monatskalender.<br><br>Leg eine oder mehrere an (du kannst sie später jederzeit ändern).</p>
+      <div class="habit-input-row">
+        <input id="habit-input" type="text" placeholder="z. B. Lesen, Sport, Meditieren …" maxlength="60"
+          onkeydown="if(event.key==='Enter') addHabit()">
+        <button class="habit-add-btn" onclick="addHabit()">+ Hinzufügen</button>
+      </div>
+      <div id="habit-list" class="habit-list"></div>
+      <p class="onb-hint" id="habit-hint">Mindestens eine Gewohnheit, um fortzufahren.</p>
+      <div class="onb-actions">
+        <button class="onb-btn-primary" id="btn-step1-next" onclick="goStep(2)" disabled>Weiter →</button>
+        <button class="onb-btn-back" onclick="goStep(0)">← Zurück</button>
+      </div>
+    </div>
+
+    <!-- SCHRITT 2: Symbole -->
+    <div class="onb-step" id="step-2">
+      <h1 class="onb-title">Die Symbole (Keys)</h1>
+      <p class="onb-sub">Jede Zeile in deiner Wochenansicht bekommt ein Symbol. Tippe darauf, um zwischen den Bedeutungen zu wechseln.</p>
+      <div class="key-grid">
+        <div class="key-row"><span class="key-sym">•</span><div><div class="key-label">Aufgabe</div><div class="key-desc">Etwas, das erledigt werden soll</div></div></div>
+        <div class="key-row"><span class="key-sym">○</span><div><div class="key-label">Termin</div><div class="key-desc">Zeitgebundenes Ereignis</div></div></div>
+        <div class="key-row"><span class="key-sym">–</span><div><div class="key-label">Notiz</div><div class="key-desc">Gedanke, Idee, Information</div></div></div>
+        <div class="key-row"><span class="key-sym">✓</span><div><div class="key-label">Erledigt</div><div class="key-desc">Aufgabe abgehakt</div></div></div>
+        <div class="key-row"><span class="key-sym">!</span><div><div class="key-label">Wichtig</div><div class="key-desc">Hervorhebung einer Zeile</div></div></div>
+        <div class="key-row"><span class="key-sym">✕</span><div><div class="key-label">Irrelevant</div><div class="key-desc">Nicht mehr nötig / abgesagt</div></div></div>
+        <div class="key-row"><span class="key-sym">›</span><div><div class="key-label">Verschoben</div><div class="key-desc">Zieht den Eintrag auf den nächsten Tag</div></div></div>
+      </div>
+      <div class="onb-actions">
+        <button class="onb-btn-primary" onclick="goStep(3)">Weiter →</button>
+        <button class="onb-btn-back" onclick="goStep(1)">← Zurück</button>
+      </div>
+    </div>
+
+    <!-- SCHRITT 3: Wetter & Stimmung -->
+    <div class="onb-step" id="step-3">
+      <h1 class="onb-title">Wetter &amp; Stimmung</h1>
+      <p class="onb-sub">In der Wochenansicht kannst du pro Tag <strong>Wetter</strong> und <strong>Stimmung</strong> festhalten.</p>
+      <p style="font-size:13px;color:var(--ink);margin:0 0 12px;font-weight:500;">Wetter — Tippe auf das Wolken-Icon oben in jedem Tag:</p>
+      <div class="weather-grid">
+        <div class="weather-row">
+          <svg viewBox="0 0 18 18" width="18" height="18" fill="none" stroke="var(--moss)" stroke-width="1.3" stroke-linecap="round"><circle cx="9" cy="9" r="2.8" fill="var(--moss)" stroke="none"/><line x1="9" y1="2.6" x2="9" y2="4.7"/><line x1="9" y1="13.3" x2="9" y2="15.4"/><line x1="2.6" y1="9" x2="4.7" y2="9"/><line x1="13.3" y1="9" x2="15.4" y2="9"/><line x1="4.5" y1="4.5" x2="6.0" y2="6.0"/><line x1="12.0" y1="12.0" x2="13.5" y2="13.5"/><line x1="4.5" y1="13.5" x2="6.0" y2="12.0"/><line x1="12.0" y1="6.0" x2="13.5" y2="4.5"/></svg>
+          <span class="weather-label">Sonnig</span>
+        </div>
+        <div class="weather-row">
+          <svg viewBox="0 0 18 18" width="18" height="18" fill="none" stroke="var(--moss)" stroke-width="1.3" stroke-linecap="round"><path d="M3.8 13.2c-1.4 0-2.5-1-2.5-2.3 0-1.1.8-2 1.9-2.2.3-1.7 1.8-2.9 3.6-2.9 1.6 0 3 1 3.4 2.4h.3c1.3 0 2.4 1 2.4 2.3 0 1.3-1.1 2.3-2.4 2.3H3.8z"/></svg>
+          <span class="weather-label">Bewölkt</span>
+        </div>
+        <div class="weather-row">
+          <svg viewBox="0 0 18 18" width="18" height="18" fill="none" stroke="var(--moss)" stroke-width="1.3" stroke-linecap="round"><path d="M3.8 13.2c-1.4 0-2.5-1-2.5-2.3 0-1.1.8-2 1.9-2.2.3-1.7 1.8-2.9 3.6-2.9 1.6 0 3 1 3.4 2.4h.3c1.3 0 2.4 1 2.4 2.3 0 1.3-1.1 2.3-2.4 2.3H3.8z"/><line x1="5" y1="15" x2="5" y2="17"/><line x1="9" y1="15" x2="9" y2="17"/><line x1="13" y1="15" x2="13" y2="17"/></svg>
+          <span class="weather-label">Regen</span>
+        </div>
+        <div class="weather-row">
+          <svg viewBox="0 0 18 18" width="18" height="18" fill="none" stroke="var(--moss)" stroke-width="1.3" stroke-linecap="round"><path d="M3.8 13.2c-1.4 0-2.5-1-2.5-2.3 0-1.1.8-2 1.9-2.2.3-1.7 1.8-2.9 3.6-2.9 1.6 0 3 1 3.4 2.4h.3c1.3 0 2.4 1 2.4 2.3 0 1.3-1.1 2.3-2.4 2.3H3.8z"/><path d="M9.5 13.5 L7.8 16.2 L9.6 16.2 L8 18.2"/></svg>
+          <span class="weather-label">Gewitter</span>
+        </div>
+      </div>
+      <p style="font-size:13px;color:var(--ink);margin:16px 0 8px;font-weight:500;">Stimmung — fünf Punkte oben rechts im Tag, von schlecht bis sehr gut:</p>
+      <div style="display:flex;gap:6px;align-items:center;margin-bottom:4px;">
+        <span style="font-size:20px;">☹</span>
+        <div style="display:flex;gap:4px;">
+          <div style="width:12px;height:12px;border-radius:50%;background:var(--moss);opacity:0.2;border:1px solid var(--rule-strong)"></div>
+          <div style="width:12px;height:12px;border-radius:50%;background:var(--moss);opacity:0.45;border:1px solid var(--rule-strong)"></div>
+          <div style="width:12px;height:12px;border-radius:50%;background:var(--moss);opacity:0.65;border:1px solid var(--rule-strong)"></div>
+          <div style="width:12px;height:12px;border-radius:50%;background:var(--moss);opacity:0.82;border:1px solid var(--moss)"></div>
+          <div style="width:12px;height:12px;border-radius:50%;background:var(--moss);border:1px solid var(--moss)"></div>
+        </div>
+        <span style="font-size:20px;">☺</span>
+      </div>
+      <p style="font-size:11px;color:var(--ink-soft);margin:0 0 0;font-family:'IBM Plex Mono',monospace;">Tippe auf einen Punkt um die Stimmung zu setzen.</p>
+      <div class="onb-actions">
+        <button class="onb-btn-primary" onclick="finish()">Fertig — App öffnen →</button>
+        <button class="onb-btn-back" onclick="goStep(2)">← Zurück</button>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyAbVCQsNeirVMDSh6B8BnlmaIfmUeZMURk",
+      authDomain: "wochenplanerv1.firebaseapp.com",
+      projectId: "wochenplanerv1",
+      storageBucket: "wochenplanerv1.firebasestorage.app",
+      messagingSenderId: "357408813271",
+      appId: "1:357408813271:web:964ab64a00edc23c594092"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+    const auth = firebase.auth();
+
+    let currentUser = null;
+    let habits = []; // { id, name }
+    let currentStep = 0;
+
+    function genId() { return 'h' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
+
+    auth.onAuthStateChanged(user => {
+      if (!user) { window.location.href = './index.html'; return; }
+      currentUser = user;
+      document.getElementById('app-loading').style.display = 'none';
+      document.getElementById('onb-root').style.display = 'block';
+      goStep(0);
+    });
+
+    function goStep(n) {
+      document.querySelectorAll('.onb-step').forEach(el => el.classList.remove('visible'));
+      document.getElementById('step-' + n).classList.add('visible');
+      document.querySelectorAll('.onb-dot').forEach((d, i) => d.classList.toggle('active', i <= n));
+      currentStep = n;
+      if (n === 1) setTimeout(() => document.getElementById('habit-input').focus(), 80);
+    }
+
+    function addHabit() {
+      const input = document.getElementById('habit-input');
+      const name = input.value.trim();
+      if (!name) return;
+      habits.push({ id: genId(), name });
+      input.value = '';
+      renderHabits();
+      input.focus();
+    }
+
+    function removeHabit(id) {
+      habits = habits.filter(h => h.id !== id);
+      renderHabits();
+    }
+
+    function renderHabits() {
+      const list = document.getElementById('habit-list');
+      list.innerHTML = habits.map(h =>
+        `<div class="habit-item">
+          <span>${h.name.replace(/</g,'&lt;')}</span>
+          <button onclick="removeHabit('${h.id}')" aria-label="Entfernen">×</button>
+        </div>`
+      ).join('');
+      const canContinue = habits.length > 0;
+      document.getElementById('btn-step1-next').disabled = !canContinue;
+      document.getElementById('habit-hint').textContent = canContinue
+        ? habits.length + (habits.length === 1 ? ' Gewohnheit angelegt.' : ' Gewohnheiten angelegt.')
+        : 'Mindestens eine Gewohnheit, um fortzufahren.';
+    }
+
+    async function finish() {
+      const btn = document.querySelector('#step-3 .onb-btn-primary');
+      btn.disabled = true;
+      btn.textContent = 'Speichern …';
+      try {
+        const uid = currentUser.uid;
+        const mediaRef = db.collection('users').doc(uid).collection('meta').doc('media');
+        const snap = await mediaRef.get();
+        let mediaLog = snap.exists && snap.data().payload
+          ? JSON.parse(snap.data().payload)
+          : { booksRead:[], booksToRead:[], movies:[], podcasts:[], quotes:[], achievements:[], dates:[], habits:[], customLists:[], textareaSizes:{reflection:null,brainDump:null} };
+        // Habits hinzufügen (falls noch keine vorhanden)
+        if (!Array.isArray(mediaLog.habits)) mediaLog.habits = [];
+        habits.forEach(h => { if (!mediaLog.habits.find(e => e.id === h.id)) mediaLog.habits.push(h); });
+        mediaLog.onboarded = true;
+        await mediaRef.set({ payload: JSON.stringify(mediaLog) });
+      } catch (e) {
+        console.warn('Onboarding-Speichern fehlgeschlagen, fahre trotzdem fort:', e);
+      }
+      window.location.href = './index.html';
+    }
+  </script>
+</body>
+</html>
