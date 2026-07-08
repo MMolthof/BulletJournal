@@ -761,6 +761,14 @@
       resize: vertical;
       min-height: 56px;
       line-height: 1.5;
+      overflow: hidden; /* verhindert Scrollbar beim Auto-Expand */
+      box-sizing: border-box;
+    }
+
+    @media (max-width: 600px) {
+      .textbox textarea {
+        resize: none; /* kein Drag-Handle auf Mobile — Größe passt sich dem Inhalt an */
+      }
     }
 
     .textbox textarea::placeholder {

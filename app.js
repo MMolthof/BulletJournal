@@ -26,7 +26,7 @@
     const SYMBOLS = ['•', '○', '–', '✓', '!', '✕', '›'];
     const WEATHER_LABELS = ['kein Eintrag', 'sonnig', 'bewölkt', 'Regen', 'Schnee', 'Gewitter'];
     const MONTH_NAMES = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'];
-    const APP_VERSION = '1.12.0';
+    const APP_VERSION = '1.12.1';
     const WEEKDAY_NAMES_FULL = ['Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag'];
 
     let currentPage = 'cover', weekOffset = 0, monthOffset = 0;
@@ -634,16 +634,28 @@
     function updateBrainDump(v) { weekData.brainDump = v; scheduleSaveWeek(); }
 
     let activeResizeObservers = [];
+    let isAutoResizing = false;
+
+    function autoResizeTA(el) {
+      if (!el) return;
+      isAutoResizing = true;
+      el.style.height = 'auto';
+      const minH = parseInt(el.style.minHeight) || 56;
+      el.style.height = Math.max(minH, el.scrollHeight) + 'px';
+      requestAnimationFrame(() => { isAutoResizing = false; });
+    }
     function attachTextareaResizeTracking() {
       activeResizeObservers.forEach(ro => ro.disconnect());
       activeResizeObservers = [];
       const map = { 'reflection-textarea': 'reflection', 'braindump-textarea': 'brainDump' };
       Object.keys(map).forEach(id => {
         const el = document.getElementById(id);
-        if (!el || typeof ResizeObserver === 'undefined') return;
+        if (!el) return;
+        autoResizeTA(el); // initiales Auto-Expand
+        if (typeof ResizeObserver === 'undefined') return;
         let skip = true;
         const ro = new ResizeObserver(entries => {
-          if (skip) { skip = false; return; }
+          if (skip || isAutoResizing) { skip = false; return; }
           const h = Math.round(entries[0].contentRect.height);
           if (!mediaLog.textareaSizes) mediaLog.textareaSizes = { reflection: null, brainDump: null };
           if (mediaLog.textareaSizes[map[id]] !== h) {
@@ -1225,10 +1237,10 @@
       ${buildWeekMoodChart(weekDates)}
     </div>
     <div class="card textbox"><span class="eyebrow">Wochenrückblick</span>
-      <textarea id="reflection-textarea"${mediaLog.textareaSizes && mediaLog.textareaSizes.reflection ? ` style="height:${mediaLog.textareaSizes.reflection}px"` : ''} placeholder="Was lief gut? Was nehme ich mit in die nächste Woche?" oninput="updateReflection(this.value)">${escapeHtml(weekData.reflection)}</textarea>
+      <textarea id="reflection-textarea"${mediaLog.textareaSizes && mediaLog.textareaSizes.reflection ? ` style="min-height:${mediaLog.textareaSizes.reflection}px"` : ''} placeholder="Was lief gut? Was nehme ich mit in die nächste Woche?" oninput="updateReflection(this.value);autoResizeTA(this)">${escapeHtml(weekData.reflection)}</textarea>
     </div>
     <div class="card textbox"><span class="eyebrow">Braindump</span>
-      <textarea id="braindump-textarea"${mediaLog.textareaSizes && mediaLog.textareaSizes.brainDump ? ` style="height:${mediaLog.textareaSizes.brainDump}px"` : ''} placeholder="Alles, was dir durch den Kopf geht — ohne Struktur, einfach festhalten." oninput="updateBrainDump(this.value)">${escapeHtml(weekData.brainDump)}</textarea>
+      <textarea id="braindump-textarea"${mediaLog.textareaSizes && mediaLog.textareaSizes.brainDump ? ` style="min-height:${mediaLog.textareaSizes.brainDump}px"` : ''} placeholder="Alles, was dir durch den Kopf geht — ohne Struktur, einfach festhalten." oninput="updateBrainDump(this.value);autoResizeTA(this)">${escapeHtml(weekData.brainDump)}</textarea>
     </div>
   `;
     }
@@ -1465,16 +1477,16 @@
   </div>`;
 
       const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
-      const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent) && !window.navigator.standalone;
+      const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
       let pwaRow = '';
       if (isStandalone) {
-        pwaRow = `<div class="settings-row"><div><div class="settings-row-title">App installieren</div><div class="settings-row-sub">Bereits als App installiert ✓</div></div></div>`;
+        pwaRow = `<div class="settings-row"><div><div class="settings-row-title">Auf diesem Gerät installiert ✓</div><div class="settings-row-sub">Auf anderen Geräten oder Browsern einfach dieselbe URL aufrufen und dort ebenfalls installieren — jedes Gerät ist unabhängig.</div></div></div>`;
       } else if (deferredPWAPrompt) {
-        pwaRow = `<div class="settings-row"><div><div class="settings-row-title">App installieren</div><div class="settings-row-sub">Zum Startbildschirm hinzufügen — kein App Store nötig</div></div><button class="toggle-btn on" onclick="installPWA()">Installieren</button></div>`;
-      } else if (isIOS) {
-        pwaRow = `<div class="settings-row"><div><div class="settings-row-title">App installieren (iOS)</div><div class="settings-row-sub">Tippe auf das Teilen-Symbol <strong>↑</strong> in Safari, dann „Zum Home-Bildschirm"</div></div></div>`;
+        pwaRow = `<div class="settings-row"><div><div class="settings-row-title">App installieren</div><div class="settings-row-sub">Zum Startbildschirm hinzufügen — kein App Store nötig. Auf jedem Gerät und Browser separat installierbar.</div></div><button class="toggle-btn on" onclick="installPWA()">Installieren</button></div>`;
+      } else if (isIOS && !window.navigator.standalone) {
+        pwaRow = `<div class="settings-row"><div><div class="settings-row-title">App installieren (iOS / Safari)</div><div class="settings-row-sub">Tippe auf das Teilen-Symbol <strong>↑</strong> → „Zum Home-Bildschirm“. Auf jedem Gerät separat — funktioniert nur in Safari.</div></div></div>`;
       } else {
-        pwaRow = `<div class="settings-row"><div><div class="settings-row-title">App installieren</div><div class="settings-row-sub">Über das Browser-Menü → „App installieren" oder „Zum Startbildschirm"</div></div></div>`;
+        pwaRow = `<div class="settings-row"><div><div class="settings-row-title">App installieren</div><div class="settings-row-sub">Über das Browsermenü → „App installieren“ oder „Zum Startbildschirm“. Auf jedem Gerät und Browser separat installierbar.</div></div></div>`;
       }
 
       const pwaCard = `<div class="card"><span class="eyebrow">App installieren</span>${pwaRow}</div>`;

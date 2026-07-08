@@ -1,5 +1,5 @@
 // Wochenplaner Service Worker — v1.12.0
-const CACHE = 'wp-v1.12.0';
+const CACHE = 'wp-v1.12.1';
 const PRECACHE = [
   './',
   './index.html',
@@ -7,8 +7,8 @@ const PRECACHE = [
   './favicon.svg',
   './CHANGELOG.html',
   './onboarding.html',
-  './style.css?v=1.12.0',
-  './app.js?v=1.12.0',
+  './style.css?v=1.12.1',
+  './app.js?v=1.12.1',
 ];
 
 self.addEventListener('install', e => {
