@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Willkommen — Wochenplaner</title>
+  <title>Willkommen — In deinem Bullet Journal</title>
   <meta name="theme-color" content="#5B7A5C">
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -80,8 +80,8 @@
           <path d="M12 44C21 33 31 23 44 12" fill="none" stroke="#5B7A5C" stroke-width="2.2" stroke-linecap="round"/>
         </svg>
       </div>
-      <h1 class="onb-title">Willkommen beim<br>Wochenplaner.</h1>
-      <p class="onb-sub">Dein digitales Bullet Journal — Gewohnheiten tracken, Wochen planen, Gedanken festhalten. Alles an einem Ort, ohne Overhead.<br><br>Wir richten deinen Wochenplaner in ein paar Schritten ein.</p>
+      <h1 class="onb-title">Willkommen bei deinem<br>Digitalen Bullet Journal.</h1>
+      <p class="onb-sub">Dein digitales Bullet Journal — Gewohnheiten tracken, Wochen planen, Gedanken festhalten. Alles an einem Ort, ohne Overhead.<br><br>Wir richten dein Journal in ein paar Schritten ein.</p>
       <div class="onb-actions">
         <button class="onb-btn-primary" onclick="goStep(1)">Los geht's →</button>
       </div>
@@ -90,7 +90,7 @@
     <!-- SCHRITT 1: Erste Gewohnheit -->
     <div class="onb-step" id="step-1">
       <h1 class="onb-title">Deine ersten Gewohnheiten</h1>
-      <p class="onb-sub">Gewohnheiten sind das Herzstück des Wochenplaners. Du kannst sie jeden Tag in der Wochenansicht abhaken — und siehst deinen Fortschritt im Monatskalender.<br><br>Leg eine oder mehrere an (du kannst sie später jederzeit ändern).</p>
+      <p class="onb-sub">Gewohnheiten sind das Herzstück des Journals. Du kannst sie jeden Tag in der Wochenansicht abhaken — und siehst deinen Fortschritt im Monatskalender.<br><br>Leg eine oder mehrere an (du kannst sie später jederzeit ändern).</p>
       <div class="habit-input-row">
         <input id="habit-input" type="text" placeholder="z. B. Lesen, Sport, Meditieren …" maxlength="60"
           onkeydown="if(event.key==='Enter') addHabit()">
@@ -146,19 +146,18 @@
           <span class="weather-label">Gewitter</span>
         </div>
       </div>
-      <p style="font-size:13px;color:var(--ink);margin:16px 0 8px;font-weight:500;">Stimmung — fünf Punkte oben rechts im Tag, von schlecht bis sehr gut:</p>
+      <p style="font-size:13px;color:var(--ink);margin:16px 0 8px;font-weight:500;">Stimmung — Seperat in einem eigenen Feld, von schlecht bis sehr gut:</p>
       <div style="display:flex;gap:6px;align-items:center;margin-bottom:4px;">
-        <span style="font-size:20px;">☹</span>
+        <span style="font-size:20px;">:(</span>
         <div style="display:flex;gap:4px;">
-          <div style="width:12px;height:12px;border-radius:50%;background:var(--moss);opacity:0.2;border:1px solid var(--rule-strong)"></div>
+          <div style="width:12px;height:12px;border-radius:50%;background:var(--moss);opacity:0.3;border:1px solid var(--rule-strong)"></div>
           <div style="width:12px;height:12px;border-radius:50%;background:var(--moss);opacity:0.45;border:1px solid var(--rule-strong)"></div>
-          <div style="width:12px;height:12px;border-radius:50%;background:var(--moss);opacity:0.65;border:1px solid var(--rule-strong)"></div>
-          <div style="width:12px;height:12px;border-radius:50%;background:var(--moss);opacity:0.82;border:1px solid var(--moss)"></div>
+          <div style="width:12px;height:12px;border-radius:50%;background:var(--moss);opacity:0.75;border:1px solid var(--rule-strong)"></div>
           <div style="width:12px;height:12px;border-radius:50%;background:var(--moss);border:1px solid var(--moss)"></div>
         </div>
-        <span style="font-size:20px;">☺</span>
+        <span style="font-size:20px;">:D</span>
       </div>
-      <p style="font-size:11px;color:var(--ink-soft);margin:0 0 0;font-family:'IBM Plex Mono',monospace;">Tippe auf einen Punkt um die Stimmung zu setzen.</p>
+      <p style="font-size:11px;color:var(--ink-soft);margin:0 0 0;font-family:'IBM Plex Mono',monospace;">Tippe im Stimmungsverlauf auf einen Tag um die Stimmung zu setzen, bzw. zu erhöhen.</p>
       <div class="onb-actions">
         <button class="onb-btn-primary" onclick="finish()">Fertig — App öffnen →</button>
         <button class="onb-btn-back" onclick="goStep(2)">← Zurück</button>
