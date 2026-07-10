@@ -2,7 +2,7 @@
   "name": "Wochenplaner",
   "short_name": "Wochenplaner",
   "description": "Dein digitales Bullet Journal",
-  "start_url": "./",
+  "start_url": "./app.html",
   "display": "standalone",
   "background_color": "#EDEEE5",
   "theme_color": "#5B7A5C",
@@ -14,5 +14,6 @@
       "sizes": "any",
       "purpose": "any"
     }
-  ]
+  ],
+  "scope": "./"
 }

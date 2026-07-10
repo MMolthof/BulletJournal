@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Seite nicht gefunden — Wochenplaner</title>
+  <meta name="theme-color" content="#5B7A5C">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,600;1,9..144,400&family=Inter:wght@400;500&family=IBM+Plex+Mono:wght@400&display=swap" rel="stylesheet">
+  <style>
+    :root { --paper:#EDEEE5; --raised:#F8F8F2; --ink:#28342F; --soft:#5C6A62; --moss:#5B7A5C; --rule:#D6D2C2; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: var(--paper); color: var(--ink); font-family: 'Inter', sans-serif; min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 32px 20px; text-align: center; }
+    .logo { display: flex; align-items: center; gap: 10px; margin-bottom: 48px; }
+    .logo-text { font-family: 'Fraunces', serif; font-size: 20px; font-weight: 600; color: var(--ink); }
+    .num { font-family: 'Fraunces', serif; font-size: clamp(72px, 16vw, 120px); font-weight: 600; color: var(--ink); line-height: 1; letter-spacing: -.04em; margin-bottom: 16px; }
+    .title { font-family: 'Fraunces', serif; font-size: clamp(20px, 4vw, 28px); font-weight: 600; margin-bottom: 12px; }
+    .sub { font-size: 15px; color: var(--soft); line-height: 1.65; max-width: 380px; margin: 0 auto 36px; }
+    .links { display: flex; gap: 14px; flex-wrap: wrap; justify-content: center; }
+    .btn { display: inline-block; text-decoration: none; font-size: 14px; padding: 10px 22px; border-radius: 20px; font-weight: 500; transition: opacity .18s; }
+    .btn-p { background: var(--moss); color: var(--raised); }
+    .btn-p:hover { opacity: .86; }
+    .btn-g { border: 1px solid var(--rule); color: var(--soft); font-family: 'IBM Plex Mono', monospace; font-size: 12px; }
+    .btn-g:hover { border-color: var(--moss); color: var(--moss); }
+    .foot { margin-top: 60px; font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: var(--soft); opacity: .6; letter-spacing: .06em; }
+  </style>
+</head>
+<body>
+  <div class="logo">
+    <svg viewBox="0 0 24 24" width="30" height="30" fill="none">
+      <rect width="24" height="24" rx="6" fill="#5B7A5C"/>
+      <path d="M4 20C4 12 9 4 20 4C20 14 13 20 4 20Z" fill="#F8F8F2"/>
+      <path d="M5 19C9 14 13 10 19 5" stroke="#5B7A5C" stroke-width="1.5" stroke-linecap="round"/>
+    </svg>
+    <span class="logo-text">Wochenplaner</span>
+  </div>
+
+  <div class="num">404</div>
+  <h1 class="title">Diese Seite gibt es nicht.</h1>
+  <p class="sub">Vielleicht wurde die URL falsch eingegeben, oder die Seite wurde verschoben. Hier geht's weiter:</p>
+
+  <div class="links">
+    <a href="./app.html" class="btn btn-p">Zum Journal →</a>
+    <a href="./index.html" class="btn btn-g">Zur Startseite</a>
+  </div>
+
+  <p class="foot">WOCHENPLANER · SEITE NICHT GEFUNDEN</p>
+</body>
+</html>

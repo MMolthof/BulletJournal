@@ -1,14 +1,16 @@
-// Wochenplaner Service Worker — v1.12.0
-const CACHE = 'wp-v1.12.1';
+// Wochenplaner Service Worker — v1.13.0
+const CACHE = 'wp-v1.13.0';
 const PRECACHE = [
   './',
   './index.html',
+  './app.html',
+  './onboarding.html',
+  './404.html',
   './manifest.json',
   './favicon.svg',
   './CHANGELOG.html',
-  './onboarding.html',
-  './style.css?v=1.12.1',
-  './app.js?v=1.12.1',
+  './style.css?v=1.13.0',
+  './app.js?v=1.13.0',
 ];
 
 self.addEventListener('install', e => {
@@ -30,7 +32,6 @@ self.addEventListener('activate', e => {
 self.addEventListener('fetch', e => {
   if (e.request.method !== 'GET') return;
   const url = new URL(e.request.url);
-  // Externe Requests (Firebase, Google Fonts etc.) immer per Netzwerk
   if (url.origin !== self.location.origin) return;
 
   e.respondWith(
