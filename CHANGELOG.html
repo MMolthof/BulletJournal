@@ -1,9 +1,74 @@
 <h2>Changelog</h2>
 
+<h3>1.13.0 — 2026-07-10</h3>
+<ul>
+  <li>Landing Page eingebunden — die Startseite zeigt jetzt eine öffentliche Projektseite mit Features, Hintergrund und FAQ</li>
+  <li>App zieht auf <code>app.html</code> um — die eigentliche Journalanwendung ist nun sauber von der Startseite getrennt</li>
+  <li>PWA-Installation startet jetzt direkt im Journal, nicht auf der Landing Page (<code>start_url</code> → <code>app.html</code>)</li>
+  <li>Neue 404-Seite — bei ungültigen URLs erscheint eine passende Fehlerseite mit Links zur Startseite und zum Journal</li>
+  <li>Service Worker cacht jetzt Landing Page, App und 404-Seite gemeinsam</li>
+  <li>Meta-Tags und Social-Preview auf der Landing Page ergänzt (OG-Tags, Theme-Color, Favicon, Manifest-Link)</li>
+</ul>
+
+<h3>1.12.1 — 2026-07-07</h3>
+<ul>
+  <li>Wochenrückblick und Braindump wachsen jetzt automatisch mit dem Inhalt mit — kein manuelles Vergrößern mehr nötig, besonders auf Mobilgeräten</li>
+  <li>Auf Mobilgeräten ist der Größen-Griff der Textfelder ausgeblendet; auf dem Desktop bleibt er erhalten und speichert die gewählte Mindesthöhe wie bisher</li>
+  <li>PWA-Karte in den Einstellungen erklärt jetzt, dass jedes Gerät und jeder Browser die App unabhängig installieren kann — kein "bereits installiert" sperrt den Hinweis auf anderen Geräten</li>
+  <li>iOS-Erkennung für die Installationsanleitung korrigiert</li>
+</ul>
+
+<h3>1.12.0 — 2026-07-07</h3>
+<ul>
+  <li>PWA-Unterstützung: App kann auf iOS, Android und Desktop zum Startbildschirm hinzugefügt werden — kein App Store nötig</li>
+  <li>Neue Karte "App installieren" in den Einstellungen — zeigt je nach Plattform den passenden Installationsweg oder -button</li>
+  <li>Manifest (<code>manifest.json</code>) und Service Worker (<code>sw.js</code>) ergänzt — App-Shell wird beim ersten Besuch gecacht und lädt danach offline</li>
+  <li>Onboarding für neue Nutzer: nach der Registrierung werden Gewohnheiten angelegt, die Bullet-Journal-Symbole erklärt und Wetter &amp; Stimmung gezeigt</li>
+  <li>Onboarding läuft auf einer eigenen Seite (<code>onboarding.html</code>) — bestehende Nutzer sehen es nicht</li>
+  <li>Meta-Tags und Open-Graph-Tags ergänzt</li>
+  <li>Favicon (Logo-Blatt auf Moos-Hintergrund) als SVG hinterlegt</li>
+</ul>
+
+<h3>1.11.1 — 2026-06-26</h3>
+<ul>
+  <li>Fehler behoben: beim Zurücknehmen einer Wochengrenzen-Migration über "›" wurde ein Fehler stillschweigend ignoriert statt angezeigt</li>
+  <li>Speicher-Optimierung: ResizeObserver-Instanzen für Wochenrückblick und Braindump werden beim Seitenwechsel jetzt korrekt getrennt (kein Memory Leak mehr)</li>
+  <li>Wochentag-Index-Berechnung (0 = Montag) an drei verschiedenen Stellen auf eine gemeinsame Hilfsfunktion zusammengeführt</li>
+  <li>Interne Wochentags-Liste in der Verschiebe-Funktion nutzt jetzt dieselbe Quelle wie der Rest der App</li>
+  <li>Zitate- und Achievement-Karte nutzen jetzt dieselbe generische Listenfunktion wie Bücher/Filme/Podcasts — weniger Codeduplizierung, Fehlerfix gilt automatisch für alle</li>
+</ul>
+
+<h3>1.11.0 — 2026-06-26</h3>
+<ul>
+  <li>Heatmap auf dem Titelblatt: letzte 5 Wochen als Kachel-Raster — ein Feld pro Tag, Farbe zeigt ob ein Habit oder eine Tageszeile eingetragen wurde</li>
+  <li>Zwei Aktivitätsstufen: helles Grün = Habit oder Tageszeile, sattes Grün = beides am selben Tag</li>
+  <li>Streak-Zähler über der Heatmap — zeigt wie viele Tage in Folge mindestens eine Aktivität stattgefunden hat</li>
+  <li>Beim Start werden automatisch die letzten 5 Wochen geladen, damit der Streak auch über Wochengrenzen korrekt berechnet wird</li>
+</ul>
+
+<h3>1.10.0 — 2026-06-26</h3>
+<ul>
+  <li>Titelblatt zeigt eine Aktivitätsheatmap der letzten 5 Wochen statt des bisherigen Blatt-Wachstumssymbols</li>
+  <li>Streak-Berechnung: ein erledigter Habit oder eine geschriebene Tageszeile zählen als aktiver Tag</li>
+</ul>
+
+<h3>1.9.1 — 2026-06-26</h3>
+<ul>
+  <li>Bestätigungsabfrage vor dem Löschen von Einträgen in allen Listen (Bücher, Filme, Podcasts, Zitate, Achievements, eigene Listen) — analog zur bestehenden Abfrage beim Löschen von Gewohnheiten</li>
+</ul>
+
+<h3>1.9.0 — 2026-06-26</h3>
+<ul>
+  <li>Jahresfeld bei allen gefilterten Listen ist jetzt ein Dropdown statt eines freien Textfeldes — nur echte Jahreszahlen wählbar, aktuelles Jahr vorausgewählt</li>
+  <li>Größe von Wochenrückblick und Braindump wird pro Konto gespeichert und bleibt nach dem Neuladen erhalten</li>
+  <li>Neuer "Zurücksetzen"-Button in den Einstellungen setzt beide Textfelder auf ihre Standardgröße zurück</li>
+  <li>App aufgeteilt in <code>index.html</code>, <code>style.css</code> und <code>app.js</code> — Cache-Busting per Versionsstring (<code>?v=…</code>)</li>
+</ul>
+
 <h3>1.8.0 — 2026-06-24</h3>
 <ul>
   <li>Jahres-Filter für Bücher (gelesen), Filme &amp; Serien, Podcasts, Zitate, Achievements und Eigene Listen — umschaltbar zwischen "Gesamt" und einzelnen Jahren</li>
-  <li>Jedes Eintrag bekommt automatisch das aktuelle Jahr beim Anlegen; bestehende Einträge ohne Jahr wurden rückwirkend auf das aktuelle Jahr gesetzt</li>
+  <li>Jeder Eintrag bekommt automatisch das aktuelle Jahr beim Anlegen; bestehende Einträge ohne Jahr wurden rückwirkend auf das aktuelle Jahr gesetzt</li>
   <li>Jahr je Eintrag direkt editierbar, falls etwas nachträglich einem anderen Jahr zugeordnet werden soll</li>
   <li>"Bücher (geplant)" bleibt bewusst ungefiltert — das ist eine Wunschliste, kein Rückblick</li>
   <li>Neuer Schalter in den Einstellungen: Jahresleiste ein-/ausblenden, für alle, die nur die Gesamtübersicht sehen wollen</li>
@@ -77,7 +142,7 @@
   <li>Stimmungsverlauf für Woche und Monat, als verbundene Punkte dargestellt</li>
   <li>Gewohnheits-Tracker als Mini-Kalender pro Monat, verknüpft mit der Wochenansicht</li>
   <li>Wichtige Termine: Jahresübersicht und nach Monat gefilterte Ansicht</li>
-  <li>Eigene Bereiche für Bücher, Filme & Serien, Podcasts</li>
+  <li>Eigene Bereiche für Bücher, Filme &amp; Serien, Podcasts</li>
   <li>Zitate und Achievements (mit Pokal-Symbol)</li>
   <li>Titelblatt mit Tageszitat und Tages-Gewohnheitsstatus</li>
   <li>Bestätigungsabfrage vor dem Löschen einer Gewohnheit</li>
