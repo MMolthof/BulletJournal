@@ -255,6 +255,12 @@
     function flashStatus(t, isError) { const el = document.getElementById('status'); el.textContent = t; el.classList.add('show'); el.classList.toggle('error', !!isError); clearTimeout(el._t); el._t = setTimeout(() => el.classList.remove('show'), isError ? 4500 : 1600); }
 
     async function loadAppData() {
+      // Caches vor dem Laden leeren — verhindert, dass alter User-State
+      // kurz sichtbar ist bevor die neuen Daten geladen sind
+      weekData    = null;
+      mediaLog    = null;
+      monthsCache = {};
+      weekCache   = {};
       applyTheme();
       document.getElementById('app').innerHTML = '<div class="loading">lädt …</div>';
       await Promise.all([loadMediaLog(), loadWeek()]);
@@ -502,8 +508,25 @@
       if (NEEDS_SETUP) { renderSetupNotice(); return; }
       auth.onAuthStateChanged(user => {
         currentUser = user;
-        if (user) { currentPage = 'cover'; loadAppData(); }
-        else { renderAuthScreen(); }
+        if (user) {
+          currentPage = 'cover';
+          loadAppData();
+        } else {
+          // Alle Caches und User-State beim Logout sofort leeren,
+          // damit beim nächsten Login keine fremden Daten sichtbar sind
+          weekData      = null;
+          mediaLog      = null;
+          monthsCache   = {};
+          weekCache     = {};
+          weekOffset    = 0;
+          monthOffset   = 0;
+          listYearFilter = 'all';
+          reorderMode   = false;
+          pendingFocusId = null;
+          activeResizeObservers.forEach(ro => ro.disconnect());
+          activeResizeObservers = [];
+          window.location.href = './index.html';
+        }
       });
     }
     async function switchPage(page) {
@@ -1555,7 +1578,7 @@
     <div class="header">
       <svg class="leaf" viewBox="0 0 24 24" fill="none" stroke="var(--moss)" stroke-width="1.4"><path d="M4 20C4 12 9 4 20 4C20 14 13 20 4 20Z"/><path d="M5 19C9 14 13 10 19 5"/></svg>
       <h1>Wochenplaner</h1>
-            <button class="toggle-btn${reorderMode ? ' on' : ''}" id="reorder-toggle" onclick="toggleReorderMode()" style="margin-left:auto;">${reorderMode ? 'Sortieren ✓' : 'Sortieren'}</button>
+            ${currentPage !== 'cover' ? `<button class="toggle-btn${reorderMode ? ' on' : ''}" id="reorder-toggle" onclick="toggleReorderMode()" style="margin-left:auto;">${reorderMode ? 'Sortieren ✓' : 'Sortieren'}</button>` : ''}
     </div>
     ${buildTabs()}
     ${content}
