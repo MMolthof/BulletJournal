@@ -460,7 +460,7 @@
       try { await auth.sendPasswordResetEmail(email); authError = ''; flashStatus('E-Mail zum Zurücksetzen wurde gesendet'); }
       catch (e) { authError = authFriendlyError(e); renderAuthScreen(); }
     }
-    function doSignOut() { auth.signOut(); }
+    function doSignOut() { auth.signOut().then(() => { window.location.href = './index.html'; }); }
 
     async function submitFeedback() {
       const field = document.getElementById('feedback-text');
@@ -525,7 +525,7 @@
           pendingFocusId = null;
           activeResizeObservers.forEach(ro => ro.disconnect());
           activeResizeObservers = [];
-          window.location.href = './index.html';
+          renderAuthScreen();
         }
       });
     }
